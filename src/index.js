@@ -52,6 +52,19 @@ app.delete("/api/delete/:id", async (req,res)=>{
     }
 })
 
+app.get ("/api/user/:id", async (req,res)=>{
+    const {id} = req.params;
+    const user = await db.findById(id);
+    if (!user) {
+        return res.status(404).send({ message: 'User not found', status: 404 });
+    }
+    res.status(200).send({
+        status: 200,
+        message: 'Successfully fetched data',
+        data: user,
+    });
+})
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
