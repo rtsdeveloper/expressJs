@@ -26,7 +26,7 @@ const verifyToken = (req, res, next) => {
 };
 
 app.post("/api/register", async (req, res) => {
-    const { name, email, username, password } = req.body;
+    const { name, email, username, password, profile_photo } = req.body;
 
     if (!name || !email || !username || !password) {
         return res.status(400).send({ message: 'Bad request' });
@@ -40,7 +40,8 @@ app.post("/api/register", async (req, res) => {
             name,
             email,
             username,
-            password: hashedPassword
+            password: hashedPassword,
+            profile_photo
         });
 
         return res.status(201).send({ message: 'User created successfully', status: 201 });
@@ -71,9 +72,6 @@ app.post("/api/login", async (req, res) => {
         status: 200,
         message: 'Successfully logged in',
         data: {
-            username: user.username,
-            name: user.name,
-            email: user.email,
             token
         },
     });
@@ -91,7 +89,8 @@ app.get('/api/profile', verifyToken, async (req, res) => {
             data: {
                 name: user.name,
                 email: user.email,
-                username: user.username
+                username: user.username,
+                profile_photo: user.profile_photo
             },
         });
     } catch (error) {

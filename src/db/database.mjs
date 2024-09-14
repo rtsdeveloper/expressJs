@@ -15,7 +15,8 @@ const db = mongoose.model('User', {
     username: String,
     name: String,
     email: String,
-    password: String
+    password: String,
+    profile_photo : String
 });
 
 export default db;
