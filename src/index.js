@@ -1,25 +1,29 @@
 import express from 'express';
 import cors from 'cors';
 import db from './db/database.mjs';
-import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const app = express();
 const PORT = 3001;
+const JWT_SECRET = 'rtsdeveloper';
 
 app.use(cors());
-app.use(cookieParser());
 app.use(express.json());
 
-app.get('/api/users', async (req, res) => {
-    const userList = await db.find();
-    res.status(200).send({
-        status: 200,
-        message: 'Successfully fetched data',
-        data: userList,
+const verifyToken = (req, res, next) => {
+    const token = req.headers['authorization'];
+    if (!token) {
+        return res.status(401).send({ message: 'No token provided' });
+    }
+    jwt.verify(token.split(" ")[1], JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ message: 'Failed to authenticate token' });
+        }
+        req.userId = decoded.id;
+        next();
     });
-});
+};
 
 app.post("/api/register", async (req, res) => {
     const { name, email, username, password } = req.body;
@@ -46,34 +50,6 @@ app.post("/api/register", async (req, res) => {
     }
 });
 
-
-app.delete("/api/delete/:id", async (req, res) => {
-    const { id } = req.params;
-    try {
-        const user = await db.findByIdAndDelete(id);
-        if (!user) {
-            return res.status(404).send({ message: 'User not found', status: 404 });
-        }
-        return res.status(200).send({ message: 'User deleted successfully', status: 200 });
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        return res.status(500).send({ message: 'Internal Server Error' });
-    }
-})
-
-app.get("/api/user/:id", async (req, res) => {
-    const { id } = req.params;
-    const user = await db.findById(id);
-    if (!user) {
-        return res.status(404).send({ message: 'User not found', status: 404 });
-    }
-    res.status(200).send({
-        status: 200,
-        message: 'Successfully fetched data',
-        data: user,
-    });
-})
-
 app.post("/api/login", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -90,11 +66,7 @@ app.post("/api/login", async (req, res) => {
     if (!isMatch) {
         return res.status(401).send({ message: 'Invalid credentials', status: 401 });
     }
-
-    const token = jwt.sign({ id: user._id }, 'rtsdeveloper');
-
-    res.cookie('token', token);
-
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
     res.status(200).send({
         status: 200,
         message: 'Successfully logged in',
@@ -102,25 +74,30 @@ app.post("/api/login", async (req, res) => {
             username: user.username,
             name: user.name,
             email: user.email,
-            username: user.username,
             token
         },
     });
 });
 
-app.post("/api/cookie", (req, res) => {
-    const token = req.cookies.token;
-    if (!token) {
-        return res.status(401).send({ message: 'Unauthorized' });
-    }
-    jwt.verify(token, 'rtsdeveloper', (err, decoded) => {
-        console.log(err)
-        if (err) {
-            return res.status(401).send({ message: 'Unauthorized' });
+app.get('/api/profile', verifyToken, async (req, res) => {
+    try {
+        const user = await db.findById(req.userId);
+        if (!user) {
+            return res.status(404).send({ message: 'User not found' });
         }
-        return res.status(200).send({ message: 'Authorized' });
-    });
-})
+        return res.status(200).send({
+            status: 200,
+            message: 'Successfully fetched current user data',
+            data: {
+                name: user.name,
+                email: user.email,
+                username: user.username
+            },
+        });
+    } catch (error) {
+        return res.status(500).send({ message: 'Internal server error' });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
