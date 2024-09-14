@@ -98,6 +98,24 @@ app.get('/api/profile', verifyToken, async (req, res) => {
     }
 });
 
+app.patch('/api/update-profile', verifyToken, async (req, res) => {
+    try {
+        const { name, email, username, profile_photo } = req.body;
+        const user = await db.findById(req.userId);
+        if (!user) {
+            return res.status(404).send({ message: 'User not found' });
+        }
+
+        await db.updateOne({ _id: req.userId }, { name, email, username, profile_photo });
+        return res.status(200).send({
+            status: 200,
+            message: 'Successfully updated current user data',
+        });
+    } catch (error) {
+        return res.status(500).send({ message: 'Internal server error' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
