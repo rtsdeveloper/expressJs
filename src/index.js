@@ -8,12 +8,11 @@ import multer from 'multer';
 const app = express();
 const PORT = 3001;
 const JWT_SECRET = 'rtsdeveloper';
+const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
 app.use(cors());
-
-const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 
 const verifyToken = (req, res, next) => {
     const token = req.headers['authorization'];
