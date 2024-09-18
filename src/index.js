@@ -3,13 +3,17 @@ import cors from 'cors';
 import db from './db/database.mjs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 
 const app = express();
 const PORT = 3001;
 const JWT_SECRET = 'rtsdeveloper';
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 app.use(cors());
-app.use(express.json());
+
+const upload = multer({ limits: { fileSize: 50 * 1024 * 1024 } });
 
 const verifyToken = (req, res, next) => {
     const token = req.headers['authorization'];
@@ -98,12 +102,12 @@ app.get('/api/profile', verifyToken, async (req, res) => {
     }
 });
 
-app.patch('/api/update-profile', verifyToken, async (req, res) => {
+app.patch('/api/update-profile', verifyToken, upload.single('file'), async (req, res) => {
     try {
         const { name, email, username, profile_photo } = req.body;
         const user = await db.findById(req.userId);
         if (!user) {
-            return res.status(404).send({ message: 'User not found' });
+            return res.status(404).send({ status: 404, message: 'User not found' });
         }
 
         await db.updateOne({ _id: req.userId }, { name, email, username, profile_photo });
