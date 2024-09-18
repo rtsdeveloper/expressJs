@@ -119,6 +119,27 @@ app.patch('/api/update-profile', verifyToken, upload.single('file'), async (req,
     }
 });
 
+app.post('/api/forgot-password', async (req, res) => {
+    try {
+        const { email, oldPassword, newPassword } = req.body;
+        const user = await db.findOne({ email });
+        if (!user) {
+            return res.status(404).send({ status: 404, message: 'User not found' });
+        }
+        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).send({ status: 401, message: 'Invalid old password' });
+        }
+        const salt = await bcrypt.genSalt(10);
+        const hashedNewPassword = await bcrypt.hash(newPassword, salt);
+        await db.updateOne({ _id: user._id }, { password: hashedNewPassword });
+        return res.status(200).send({ status: 200, message: 'Password reset successfully' });
+    } catch (error) {
+        return res.status(500).send({ message: 'Internal server error' });
+    }
+});
+
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
